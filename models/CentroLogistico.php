@@ -26,7 +26,7 @@ class CentroLogistico {
                    cl.capacidad, cl.tipos_recursos, cl.zona_cobertura, cl.contacto
             FROM " . $this->table_name . " cl
             JOIN Categorias c ON cl.id_categoria = c.id_categoria
-            ORDER BY cl.id_centro ASC
+            ORDER BY cl.id_centro DESC
         ";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
