@@ -135,6 +135,32 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
                             <i class="fas fa-users icon"></i>Usuarios
                         </a>
                     </li>
+                     <!-- Aquí agregamos el menú desplegable con checkboxes -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter icon"></i> Filtrar Categorías
+                    </a>
+                    <ul class="dropdown-menu p-3" aria-labelledby="categoryDropdown">
+                        <form id="filterPointsForm">
+                            <label>
+                        <input type="checkbox" id="noneOption" onchange="handleNoneOption()"> 
+                        Ninguno
+                    </label>
+                            
+                 l           <?php foreach ($categorias as $categoria): ?>
+                                <li>
+                                    <label>
+                                        <input type="checkbox" name="categories[]" value="<?= $categoria['id_categoria'] ?>" onchange="filterPoints()"> 
+                                        <?= htmlspecialchars($categoria['nombre'], ENT_QUOTES, 'UTF-8') ?>
+                                    </label>
+                                </li>
+                            <?php endforeach; ?>
+                        </form>
+                        
+                    </ul>
+                </li>
+
+
                 </ul>
             </div>
             <button class="btn btn-outline-light ms-3" onclick="toggleDarkMode()">Modo Oscuro</button>
@@ -147,6 +173,7 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
         <h1 style="color: white; text-shadow: 1px 1px 10px black, -1px -1px 10px black;">
             <i class="fas fa-map-marked-alt"></i> Sistema de Logística y Distribución</h1>
         <div id="map" class="rounded"></div>
+    
     </div>
 
     <!-- Modal para agregar punto -->
@@ -226,71 +253,72 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
     <!-- Interactar con el Mapa -->
     <script>
 
-function toggleDarkMode() {
+     
+
+        function toggleDarkMode() {
             const body = document.body;
             body.classList.toggle('dark-mode');
         }
+
+
+
         let map, tempMarker;
         let markers = [];
 
+
+
+
         function initMap() {
             const tarija = { lat: -21.5355, lng: -64.7296 };
-            map = new google.maps.Map(document.getElementById("map"), {center: tarija, zoom: 13,});
-            loadPoints();
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: tarija,
+                zoom: 13,
 
-            // Agregar evento de doble clic para agregar nuevos puntos
+            });
+
+            // Carga inicial (todas las categorías)
+            loadPoints(0);
+            
+
+             // Agrega un listener para clic en el mapa
             map.addListener("dblclick", (event) => {
-                if (tempMarker) tempMarker.setMap(null);
+
+                if (tempMarker) tempMarker.setMap(null); // Elimina el marcador temporal previo si existe
+
+                // Agrega un nuevo marcador temporal
                 tempMarker = new google.maps.Marker({
-                    position: event.latLng,
+                    position: event.latLng, // Coordenadas del clic
                     map: map,
                 });
+
+                // Asigna las coordenadas al formulario
                 document.getElementById("latitud").value = event.latLng.lat();
                 document.getElementById("longitud").value = event.latLng.lng();
+
+                // Muestra el modal para agregar un nuevo punto
                 const modal = new bootstrap.Modal(document.getElementById("addPointModal"));
                 modal.show();
+
             });
 
+
+            // Maneja cambios en el filtro
+            document.getElementById('categoryFilter').addEventListener('change', (e) => {
+                const categoryId = e.target.value;
+                loadPoints(categoryId);
+            });
+
+
+            // Limpia el marcador temporal cuando se cierra el modal
             $('#addPointModal').on('hidden.bs.modal', function () {
-                resetFormAndMarker();
-            });
-        }
-
-        // Función para cargar puntos desde la base de datos y mostrarlos en el mapa
-        function loadPoints() {
-            $.get('../controllers/CentrosController.php?action=getPoints', function (data) {
-                try {
-                    clearMarkers(); // Limpiar marcadores existentes
-                    const points = JSON.parse(data);
-
-                    points.forEach(function (point) {
-                        const marker = new google.maps.Marker({
-                            position: { lat: parseFloat(point.latitud), lng: parseFloat(point.longitud) },
-                            map: map,
-                            title: point.nombre,
-                        });
-                        const infoWindow = new google.maps.InfoWindow({
-                            content: `
-                                <h5>${point.nombre}</h5>
-                                <p><b>Horario:</b> ${point.horario_operacion}</p>
-                                <p><b>Capacidad:</b> ${point.capacidad}</p>
-                                <p><b>Contacto:</b> ${point.contacto}</p>
-                                <p><b>Tipo de recursos:</b> ${point.tipos_recursos || "No especificado"}</p>
-                            `,
-                        });
-                        marker.addListener("click", function () {
-                            infoWindow.open(map, marker);
-                        });
-                        markers.push(marker); // Guardar marcador en el array
-                    });
-                } catch (error) {
-                    console.error("Error al procesar los puntos:", error);
-                    alert("Error al cargar los puntos en el mapa.");
+                if (tempMarker) {
+                    tempMarker.setMap(null);
+                    tempMarker = null;
                 }
-            }).fail(function () {
-                alert("Error en la conexión con el servidor al cargar puntos.");
             });
         }
+
+        
 
         // Función para limpiar marcadores del mapa
         function clearMarkers() {
@@ -306,6 +334,74 @@ function toggleDarkMode() {
                 tempMarker = null;
             }
         }
+
+
+        function handleNoneOption() {
+            const noneOption = document.getElementById('noneOption');
+
+            if (noneOption.checked) {
+                // Desmarcar todos los demás checkboxes
+                $('input[name="categories[]"]').prop('checked', false);
+
+                // Mostrar el mapa en blanco
+                clearMarkers([]); // Llamar a la función para cargar un mapa sin puntos
+            }
+        }
+
+        function filterPoints() {
+            const noneOption = document.getElementById('noneOption');
+            
+            // Si se selecciona cualquier otra categoría, desmarcar la opción "NINGUNO"
+            if (noneOption.checked) {
+                noneOption.checked = false;
+            }
+
+            // Obtener todas las categorías seleccionadas
+            const selectedCategories = $('input[name="categories[]"]:checked').map(function () {
+                return this.value;
+            }).get();
+
+            console.log("Categorías seleccionadas:", selectedCategories);
+
+            // Llamar a la función para cargar los puntos seleccionados
+            loadPoints(selectedCategories);
+        }
+
+
+
+        // Actualiza la función loadPoints para aceptar las categorías seleccionadas
+        function loadPoints(selectedCategories = []) {
+            $.post('../controllers/getPoints.php', { categories: selectedCategories }, function (data) {
+                clearMarkers(); // Limpia los marcadores anteriores
+
+                if (!data || data.length === 0) {
+                    alert("No se encontraron puntos para las categorías seleccionadas.");
+                    return;
+                }
+
+                data.forEach(point => {
+                    const marker = new google.maps.Marker({
+                        position: { lat: parseFloat(point.latitud), lng: parseFloat(point.longitud) },
+                        map: map,
+                        title: point.nombre,
+                    });
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                            <h5>${point.nombre}</h5>
+                            <p><b>Horario:</b> ${point.horario_operacion}</p>
+                            <p><b>Capacidad:</b> ${point.capacidad}</p>
+                            <p><b>Contacto:</b> ${point.contacto}</p>
+                            <p><b>Tipo de recursos:</b> ${point.tipos_recursos || "No especificado"}</p>
+                        `,
+                    });
+
+                    marker.addListener("click", () => infoWindow.open(map, marker));
+                    markers.push(marker);
+                });
+            }, 'json').fail(() => alert("Error al cargar los puntos."));
+        }
+
 
         // Función para mostrar la confirmación y manejar "Sí" o "No"
         function confirmSave() {

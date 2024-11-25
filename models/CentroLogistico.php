@@ -34,13 +34,10 @@ class CentroLogistico {
     }
 
     public function create() {
-        $query = "
-            INSERT INTO " . $this->table_name . " 
-            SET nombre=:nombre, id_categoria=:id_categoria, descripcion=:descripcion, 
-                longitud=:longitud, latitud=:latitud, horario_operacion=:horario_operacion, 
-                capacidad=:capacidad, tipos_recursos=:tipos_recursos, 
-                zona_cobertura=:zona_cobertura, contacto=:contacto
-        ";
+        $query = "INSERT INTO " . $this->table_name . "  
+          (nombre, id_categoria, descripcion, longitud, latitud, horario_operacion, capacidad, tipos_recursos, zona_cobertura, contacto) 
+          VALUES (:nombre, :id_categoria, :descripcion, :longitud, :latitud, :horario_operacion, :capacidad, :tipos_recursos, :zona_cobertura, :contacto)";
+
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(":nombre", $this->nombre);
