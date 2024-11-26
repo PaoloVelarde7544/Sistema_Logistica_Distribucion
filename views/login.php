@@ -22,12 +22,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Verificar contraseña
-    if ($usuario && password_verify($contrasena, $usuario['contrasena'])) {
+    if ($usuario && $contrasena === $usuario['contrasena']) {
         // Iniciar sesión
         $_SESSION['id_usuario'] = $usuario['id_usuario'];
         $_SESSION['nombre'] = $usuario['nombre'];
         $_SESSION['rol'] = $usuario['rol'];
-        header('Location: ../public/index.php'); // Redirigir al dashboard o página principal
+
+        // Redirigir según el rol
+        if ($usuario['rol'] === 'administrador') {
+            header('Location: ../public/index.php');
+        } elseif ($usuario['rol'] === 'operador') {
+            header('Location: ../public/index_user.php');
+        } else {
+            $error = "Rol no reconocido.";
+        }
         exit();
     } else {
         $error = "Correo o contraseña incorrectos.";
@@ -46,18 +54,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
     body {
-        background: url('../images/5568850.jpg') no-repeat center center fixed; /* Ruta de la imagen */
-        background-size: cover; /* Ajusta la imagen al tamaño de la ventana */
+        background: url('../images/5568850.jpg') no-repeat center center fixed;
+        background-size: cover;
         font-family: 'Poppins', sans-serif;
         height: 100vh;
         display: flex;
-        justify-content: center; /* Centra horizontalmente */
-        align-items: center; /* Centra verticalmente */
+        justify-content: center;
+        align-items: center;
         margin: 0;
     }
 
     .login-container {
-        background: rgba(255, 255, 255, 0.9); /* Fondo blanco con opacidad */
+        background: rgba(255, 255, 255, 0.9);
         padding: 30px;
         border-radius: 15px;
         box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
@@ -103,8 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         font-size: 3rem;
         margin-bottom: 20px;
     }
-</style>
-
+    </style>
 </head>
 <body>
     <div class="login-container">
@@ -130,4 +137,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

@@ -98,7 +98,12 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
         }
     </style>
-    </style>
+
+
+
+
+
+
 </head>
 
 <body>
