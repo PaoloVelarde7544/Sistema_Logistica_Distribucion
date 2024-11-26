@@ -185,7 +185,18 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
         <h1 style="color: white; text-shadow: 1px 1px 10px black, -1px -1px 10px black;">
             <i class="fas fa-map-marked-alt"></i> Sistema de Logística y Distribución</h1>
         <div id="map" class="rounded"></div>
-    
+
+        <div style="margin: 10px; display: flex; justify-content: center; gap: 10px;">
+            <button id="togglePolygons" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
+                Polígonos
+            </button>
+            <button id="togglePoints" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
+                Puntos
+            </button>
+            <button id="toggleRoutes" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
+                Rutas
+            </button>
+        </div>
     </div>
 
     <!-- Modal para agregar punto -->
@@ -264,21 +275,20 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
 
     <!-- Interactar con el Mapa -->
     <script>
-
-     
-
         function toggleDarkMode() {
             const body = document.body;
             body.classList.toggle('dark-mode');
         }
 
-
-
         let map, tempMarker;
         let markers = [];
+        let polygonLayers = []; // Array para manejar los polígonos cargados
+        let pointLayers = []; // Array para manejar los puntos cargados
+        let polygonsVisible = true;
+        let pointsVisible = true;
 
-
-
+        let routeLayer; // Variable para manejar la capa de rutas
+        let routesVisible = true; // Control de visibilidad de rutas
 
         function initMap() {
             const tarija = { lat: -21.5355, lng: -64.7296 };
@@ -288,10 +298,44 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
 
             });
 
-            // Carga inicial (todas las categorías)
-            loadPoints(0);
-            
+            // Cargar dinámicamente todas las capas (polígonos y puntos)
+            $.get('../controllers/getGeoJsonFiles.php', function (files) {
+                files.forEach(file => {
+                    if (file.includes("poligono")) {
+                        const layerName = getLayerNameFromFile(file);
+                        loadPolygonLayer(file, layerName);
+                    } else if (file.includes("puntos")) {
+                        const layerName = getPointLayerNameFromFile(file);
+                        loadPointLayer(file, layerName);
+                    } else if (file.includes("lineas_rutas")) {
+                        loadRouteLayer(file); // Cargar la capa de rutas
+                    }
+                });
+            }).fail(() => {
+                console.error("Error al cargar las capas GeoJSON.");
+            });
 
+            // Botón para mostrar/ocultar polígonos
+            document.getElementById("togglePolygons").addEventListener("click", () => {
+                polygonsVisible = !polygonsVisible;
+                toggleLayersVisibility(polygonLayers, polygonsVisible);
+            });
+
+            // Botón para mostrar/ocultar puntos
+            document.getElementById("togglePoints").addEventListener("click", () => {
+                pointsVisible = !pointsVisible;
+                toggleLayersVisibility(pointLayers, pointsVisible);
+            });
+
+            // Botón para mostrar/ocultar rutas
+            document.getElementById("toggleRoutes").addEventListener("click", () => {
+                routesVisible = !routesVisible;
+                toggleLayersVisibility([routeLayer], routesVisible);
+            });
+
+            // Carga inicial (todas las categorías)
+            //loadPoints(0);
+            
              // Agrega un listener para clic en el mapa
             map.addListener("dblclick", (event) => {
 
@@ -313,13 +357,11 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
 
             });
 
-
             // Maneja cambios en el filtro
             document.getElementById('categoryFilter').addEventListener('change', (e) => {
                 const categoryId = e.target.value;
                 loadPoints(categoryId);
             });
-
 
             // Limpia el marcador temporal cuando se cierra el modal
             $('#addPointModal').on('hidden.bs.modal', function () {
@@ -329,8 +371,6 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
                 }
             });
         }
-
-        
 
         // Función para limpiar marcadores del mapa
         function clearMarkers() {
@@ -347,7 +387,6 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
             }
         }
 
-
         function handleNoneOption() {
             const noneOption = document.getElementById('noneOption');
 
@@ -362,27 +401,21 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
 
         function filterPoints() {
             const noneOption = document.getElementById('noneOption');
-            
             // Si se selecciona cualquier otra categoría, desmarcar la opción "NINGUNO"
             if (noneOption.checked) {
                 noneOption.checked = false;
             }
-
             // Obtener todas las categorías seleccionadas
             const selectedCategories = $('input[name="categories[]"]:checked').map(function () {
                 return this.value;
             }).get();
-
             console.log("Categorías seleccionadas:", selectedCategories);
-
             // Llamar a la función para cargar los puntos seleccionados
             loadPoints(selectedCategories);
         }
 
-
-
         // Actualiza la función loadPoints para aceptar las categorías seleccionadas
-       /* function loadPoints(selectedCategories = []) {
+        function loadPoints(selectedCategories = []) {
             $.post('../controllers/getPoints.php', { categories: selectedCategories }, function (data) {
                 clearMarkers(); // Limpia los marcadores anteriores
 
@@ -392,10 +425,32 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
                 }
 
                 data.forEach(point => {
+                    let iconUrl;
+
+                    // Asigna un ícono diferente basado en la categoría
+                    switch (point.id_categoria) {
+                        case 1: // Categoría fábricas
+                            iconUrl = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"; // Ícono azul
+                            break;
+                        case 2: // Categoría hospitales
+                            iconUrl = "https://maps.google.com/mapfiles/ms/icons/green-dot.png"; // Ícono verde
+                            break;
+                        case 3: // Categoría escuelas
+                            iconUrl = "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png"; // Ícono amarillo
+                            break;
+                        case 4: // Categoría mercados
+                            iconUrl = "https://maps.google.com/mapfiles/ms/icons/red-dot.png"; // Ícono morado
+                            break;
+                        default: // Categoría por defecto
+                            iconUrl = "https://maps.google.com/mapfiles/ms/icons/red-dot.png"; // Ícono rojo
+                            break;
+                    }
+
                     const marker = new google.maps.Marker({
                         position: { lat: parseFloat(point.latitud), lng: parseFloat(point.longitud) },
                         map: map,
                         title: point.nombre,
+                        icon: iconUrl, // Asigna el ícono correspondiente
                     });
 
                     const infoWindow = new google.maps.InfoWindow({
@@ -412,68 +467,7 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
                     markers.push(marker);
                 });
             }, 'json').fail(() => alert("Error al cargar los puntos."));
-        }*/
-
-
-
-
-        // Actualiza la función loadPoints para aceptar las categorías seleccionadas
-// Actualiza la función loadPoints para aceptar las categorías seleccionadas
-function loadPoints(selectedCategories = []) {
-    $.post('../controllers/getPoints.php', { categories: selectedCategories }, function (data) {
-        clearMarkers(); // Limpia los marcadores anteriores
-
-        if (!data || data.length === 0) {
-            alert("No se encontraron puntos para las categorías seleccionadas.");
-            return;
         }
-
-        data.forEach(point => {
-            let iconUrl;
-
-            // Asigna un ícono diferente basado en la categoría
-            switch (point.id_categoria) {
-                case 1: // Categoría fábricas
-                    iconUrl = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"; // Ícono azul
-                    break;
-                case 2: // Categoría hospitales
-                    iconUrl = "https://maps.google.com/mapfiles/ms/icons/green-dot.png"; // Ícono verde
-                    break;
-                case 3: // Categoría escuelas
-                    iconUrl = "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png"; // Ícono amarillo
-                    break;
-                case 4: // Categoría mercados
-                    iconUrl = "https://maps.google.com/mapfiles/ms/icons/red-dot.png"; // Ícono morado
-                    break;
-                default: // Categoría por defecto
-                    iconUrl = "https://maps.google.com/mapfiles/ms/icons/red-dot.png"; // Ícono rojo
-                    break;
-            }
-
-            const marker = new google.maps.Marker({
-                position: { lat: parseFloat(point.latitud), lng: parseFloat(point.longitud) },
-                map: map,
-                title: point.nombre,
-                icon: iconUrl, // Asigna el ícono correspondiente
-            });
-
-            const infoWindow = new google.maps.InfoWindow({
-                content: `
-                    <h5>${point.nombre}</h5>
-                    <p><b>Horario:</b> ${point.horario_operacion}</p>
-                    <p><b>Capacidad:</b> ${point.capacidad}</p>
-                    <p><b>Contacto:</b> ${point.contacto}</p>
-                    <p><b>Tipo de recursos:</b> ${point.tipos_recursos || "No especificado"}</p>
-                `,
-            });
-
-            marker.addListener("click", () => infoWindow.open(map, marker));
-            markers.push(marker);
-        });
-    }, 'json').fail(() => alert("Error al cargar los puntos."));
-}
-
-
 
         // Función para mostrar la confirmación y manejar "Sí" o "No"
         function confirmSave() {
@@ -524,7 +518,97 @@ function loadPoints(selectedCategories = []) {
             loadPoints();
         });
 
-        
+        // Función para cargar y estilizar polígonos
+        function loadPolygonLayer(fileName, layerName) {
+            const layer = new google.maps.Data();
+            layer.loadGeoJson(fileName); // Usa la ruta proporcionada por el controlador
+
+            layer.setStyle(() => {
+                switch (layerName) {
+                    case "poligono_fabricas":
+                        return { fillColor: "#FF0000", strokeColor: "#990000", fillOpacity: 0.5, strokeWeight: 2 };
+                    case "poligono_importadoras":
+                        return { fillColor: "#00FF00", strokeColor: "#009900", fillOpacity: 0.5, strokeWeight: 2 };
+                    case "poligono_distribuidoras":
+                        return { fillColor: "#0000FF", strokeColor: "#000099", fillOpacity: 0.5, strokeWeight: 2 };
+                    case "poligono_comercializadoras":
+                        return { fillColor: "#FFFF00", strokeColor: "#999900", fillOpacity: 0.5, strokeWeight: 2 };
+                    default:
+                        return { fillColor: "#FFFFFF", strokeColor: "#CCCCCC", fillOpacity: 0.3, strokeWeight: 1 };
+                }
+            });
+
+            layer.setMap(map);
+            polygonLayers.push(layer); // Guardar la capa en el array
+
+        }
+
+        // Función para cargar y estilizar puntos
+        function loadPointLayer(fileName, layerName) {
+            const layer = new google.maps.Data();
+            layer.loadGeoJson(fileName); // Usa la ruta proporcionada por el controlador
+            layer.setStyle(() => {
+                switch (layerName) {
+                    case "puntos_fabricas":
+                        return { icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png" };
+                    case "puntos_importadoras":
+                        return { icon: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" };
+                    case "puntos_distribuidoras":
+                        return { icon: "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png" };
+                    case "puntos_comercializadoras":
+                        return { icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png" };
+                    default:
+                        return { icon: "https://maps.google.com/mapfiles/ms/icons/purple-dot.png" };
+                }
+            });
+            layer.setMap(map);
+            pointLayers.push(layer); // Guardar la capa en el array
+        }
+
+        // Función para alternar la visibilidad de capas
+        function toggleLayersVisibility(layers, visible) {
+            layers.forEach(layer => {
+                layer.setMap(visible ? map : null);
+            });
+        }
+
+        // Funciones auxiliares para determinar nombres de capas
+        function getLayerNameFromFile(fileName) {
+            if (fileName.includes("fabricas")) return "poligono_fabricas";
+            if (fileName.includes("importadoras")) return "poligono_importadoras";
+            if (fileName.includes("distribuidoras")) return "poligono_distribuidoras";
+            if (fileName.includes("comercializadoras")) return "poligono_comercializadoras";
+            return "default";
+        }
+
+        function getPointLayerNameFromFile(fileName) {
+            if (fileName.includes("fabricas")) return "puntos_fabricas";
+            if (fileName.includes("importadoras")) return "puntos_importadoras";
+            if (fileName.includes("distribuidoras")) return "puntos_distribuidoras";
+            if (fileName.includes("comercializadoras")) return "puntos_comercializadoras";
+            return "default";
+        }
+
+        // Función para cargar la capa de rutas
+        function loadRouteLayer(fileName) {
+            routeLayer = new google.maps.Data();
+            routeLayer.loadGeoJson(fileName); // Cargar el archivo GeoJSON de rutas
+            routeLayer.setStyle({
+                strokeColor: "#FF5733", // Color de la línea
+                strokeOpacity: 1.0,
+                strokeWeight: 4 // Grosor de la línea
+            });
+            routeLayer.setMap(map); // Mostrar en el mapa
+        }
+
+        // Función para alternar la visibilidad de capas
+        function toggleLayersVisibility(layers, visible) {
+            layers.forEach(layer => {
+                if (layer) {
+                    layer.setMap(visible ? map : null);
+                }
+            });
+        }
 
     </script>
 
@@ -533,7 +617,7 @@ function loadPoints(selectedCategories = []) {
     
     <!-- Footer -->
     <footer>
-        <p>© 2024 Logística y Distribución. Todos los derechos reservados. <a href="#">Política de Privacidad</a></p>
+        <p>© 2024 Logística y Distribución. By Team Hijitas...!!!. <a href="#">Política de Privacidad</a></p>
     </footer>
 </body>
 

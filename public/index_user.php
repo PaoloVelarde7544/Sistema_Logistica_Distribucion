@@ -183,8 +183,11 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
             <button id="togglePolygons" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
                 Polígonos
             </button>
-            <button id="togglePoints" style="background-color: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
+            <button id="togglePoints" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
                 Puntos
+            </button>
+            <button id="toggleRoutes" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px;">
+                Rutas
             </button>
         </div>
     </div>
@@ -276,6 +279,9 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
         let polygonsVisible = true;
         let pointsVisible = true;
 
+        let routeLayer; // Variable para manejar la capa de rutas
+        let routesVisible = true; // Control de visibilidad de rutas
+
         function initMap() {
             const tarija = { lat: -21.5355, lng: -64.7296 };
             map = new google.maps.Map(document.getElementById("map"), {
@@ -293,7 +299,9 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
                     } else if (file.includes("puntos")) {
                         const layerName = getPointLayerNameFromFile(file);
                         loadPointLayer(file, layerName);
-                    }
+                    } else if (file.includes("lineas_rutas")) {
+                    loadRouteLayer(file); // Cargar la capa de rutas
+                }
                 });
             }).fail(() => {
                 console.error("Error al cargar las capas GeoJSON.");
@@ -309,6 +317,12 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
             document.getElementById("togglePoints").addEventListener("click", () => {
                 pointsVisible = !pointsVisible;
                 toggleLayersVisibility(pointLayers, pointsVisible);
+            });
+
+            // Botón para mostrar/ocultar rutas
+            document.getElementById("toggleRoutes").addEventListener("click", () => {
+                routesVisible = !routesVisible;
+                toggleLayersVisibility([routeLayer], routesVisible);
             });
 
             // Carga inicial (todas las categorías)
@@ -567,6 +581,27 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
             return "default";
         }
 
+        // Función para cargar la capa de rutas
+        function loadRouteLayer(fileName) {
+            routeLayer = new google.maps.Data();
+            routeLayer.loadGeoJson(fileName); // Cargar el archivo GeoJSON de rutas
+            routeLayer.setStyle({
+                strokeColor: "#FF5733", // Color de la línea
+                strokeOpacity: 1.0,
+                strokeWeight: 4 // Grosor de la línea
+            });
+            routeLayer.setMap(map); // Mostrar en el mapa
+        }
+
+        // Función para alternar la visibilidad de capas
+        function toggleLayersVisibility(layers, visible) {
+            layers.forEach(layer => {
+                if (layer) {
+                    layer.setMap(visible ? map : null);
+                }
+            });
+        }
+
     </script>
 
     <!-- Google Maps API -->
@@ -574,7 +609,7 @@ $categorias = $categoriaController->listAll(); // Obtiene las categorías del co
     
     <!-- Footer -->
     <footer>
-        <p>© 2024 Logística y Distribución. By Paolo Velarde and Pablo Aban. <a href="#">Política de Privacidad</a></p>
+        <p>© 2024 Logística y Distribución. By Team Hijitas...!!! <a href="#">Política de Privacidad</a></p>
     </footer>
 </body>
 
