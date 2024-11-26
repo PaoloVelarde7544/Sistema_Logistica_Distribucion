@@ -36,16 +36,17 @@ class Ruta {
 
     public function create() {
         $query = "
-            INSERT INTO " . $this->table_name . " 
+            INSERT INTO rutas 
             (id_centro_origen, id_centro_destino, distancia, tiempo_estimado) 
             VALUES (:id_centro_origen, :id_centro_destino, :distancia, :tiempo_estimado)
         ";
+
         $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":id_centro_origen", $this->id_centro_origen);
-        $stmt->bindParam(":id_centro_destino", $this->id_centro_destino);
-        $stmt->bindParam(":distancia", $this->distancia);
-        $stmt->bindParam(":tiempo_estimado", $this->tiempo_estimado);
+        $stmt->bindParam(':id_centro_origen', $this->id_centro_origen, PDO::PARAM_INT);
+        $stmt->bindParam(':id_centro_destino', $this->id_centro_destino, PDO::PARAM_INT);
+        $stmt->bindParam(':distancia', $this->distancia, PDO::PARAM_STR);
+        $stmt->bindParam(':tiempo_estimado', $this->tiempo_estimado, PDO::PARAM_STR);
 
         return $stmt->execute();
     }

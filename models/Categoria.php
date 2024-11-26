@@ -19,7 +19,7 @@ class Categoria {
     }
 
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " SET nombre=:nombre, descripcion=:descripcion";
+        $query = "INSERT INTO " . $this->table_name . " (nombre, descripcion) VALUES (:nombre, :descripcion)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":descripcion", $this->descripcion);

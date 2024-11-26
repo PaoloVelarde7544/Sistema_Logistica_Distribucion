@@ -1,0 +1,19 @@
+{
+"type": "FeatureCollection",
+"name": "puntos_importadoras",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "Nombre": "Importadora Jasel" }, "geometry": { "type": "Point", "coordinates": [ -64.744350783633095, -21.557244913679494 ] } },
+{ "type": "Feature", "properties": { "id": 2, "Nombre": "Importadora Falumar" }, "geometry": { "type": "Point", "coordinates": [ -64.737061295562313, -21.513906023240494 ] } },
+{ "type": "Feature", "properties": { "id": 3, "Nombre": "Importadora MegaPisos" }, "geometry": { "type": "Point", "coordinates": [ -64.73813734073687, -21.524822846534985 ] } },
+{ "type": "Feature", "properties": { "id": 4, "Nombre": "Importadora Jhon Marco" }, "geometry": { "type": "Point", "coordinates": [ -64.737106933213326, -21.517374504356248 ] } },
+{ "type": "Feature", "properties": { "id": 5, "Nombre": "Importaciones Tarija" }, "geometry": { "type": "Point", "coordinates": [ -64.733476535061413, -21.531203958596709 ] } },
+{ "type": "Feature", "properties": { "id": 6, "Nombre": "Importadora Casa Peavey" }, "geometry": { "type": "Point", "coordinates": [ -64.750553911544273, -21.530832133914348 ] } },
+{ "type": "Feature", "properties": { "id": 7, "Nombre": "Importadora Grupo Gallardo" }, "geometry": { "type": "Point", "coordinates": [ -64.738096309190297, -21.533858373690258 ] } },
+{ "type": "Feature", "properties": { "id": 8, "Nombre": "Importadora Monterrey" }, "geometry": { "type": "Point", "coordinates": [ -64.698820113873467, -21.546830923719384 ] } },
+{ "type": "Feature", "properties": { "id": 9, "Nombre": "Importaciones Cesar" }, "geometry": { "type": "Point", "coordinates": [ -64.739366710188364, -21.514756618381202 ] } },
+{ "type": "Feature", "properties": { "id": 10, "Nombre": "Importadora Yuli Tarija" }, "geometry": { "type": "Point", "coordinates": [ -64.737088546261504, -21.525777826575311 ] } },
+{ "type": "Feature", "properties": { "id": 11, "Nombre": "Importadora El Circulo" }, "geometry": { "type": "Point", "coordinates": [ -64.733483912535263, -21.530654336794409 ] } },
+{ "type": "Feature", "properties": { "id": 12, "Nombre": "Importadora Wasgab" }, "geometry": { "type": "Point", "coordinates": [ -64.73553780125691, -21.521323307860808 ] } }
+]
+}
